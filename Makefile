@@ -26,7 +26,7 @@ CSTYLE_CORRECT := --style=Google -i
 
 .DEFAULT_GOAL: all
 
-all: build
+all: build dvi
 
 install:
 

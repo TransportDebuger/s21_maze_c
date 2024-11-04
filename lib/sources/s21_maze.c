@@ -15,28 +15,28 @@
   \brief Функция создания структуры maze_t.
   \return Целочисленное значение кода ошибки.
 
-  Функция предназначена для создания основной структуры maze_t.
+  \details Функция предназначена для создания основной структуры maze_t.
   В ходе выплолнения создается структура хранения либиринта. Указатель на адрес
   созданной структуры передается локатору ресурсов.
 */
-int createMaze(int height, int width) {
+maze_t* createMaze(int height, int width) {
   int errval = ERRCODE_ERR;
+  maze_t* pmaze;
 
   if (height < MAX_MAZE_MEASURE && height > 0 && width < MAX_MAZE_MEASURE &&
-      width > 0 && locateMazeStructure(NULL) == NULL)
+      width > 0)
     errval = ERRCODE_OK;
 
   if (!errval) {
-    maze_t* pmaze = (maze_t*)malloc(sizeof(maze_t));
+    pmaze = (maze_t*)malloc(sizeof(maze_t));
     if (pmaze) {
       pmaze->height = height;
       pmaze->width = width;
       pmaze->border_matrix = createMatrix(height, width);
-      locateMazeStructure(pmaze);
     }
   }
 
-  return errval;
+  return pmaze;
 }
 
 /*!
@@ -53,7 +53,6 @@ void destroyMaze(maze_t* pmaze) {
     destroyMatrix(pmaze->border_matrix);
     //функция уничтожения матрицы
     free(pmaze);
-    locateMazeStructure(pmaze);
   }
 }
 
@@ -178,4 +177,114 @@ void clearMatrix(maze_t* pmaze) {
       }
     }
   }
+}
+
+/*!
+  \ingroup Data_management_routines Функции работы с данными структур
+  \brief Функция заполнения матрицы лабиринта случайными значениями.
+  \param [in] pmaze Указатель на адрес структуры maze_t.
+  \return Возвращает 0 при возникновении исключения или 1.
+
+  \details Функции предназначена заполнения матрицы лабиринта.
+*/
+int fillMaze(maze_t* pmaze) {
+  int errval = ERRCODE_ERR;
+
+  if (pmaze) {
+    for (int i = 0; i < pmaze->height; i++) {
+        //
+        int row[pmaze->width];
+        for (int j = 0; j < pmaze->width; j++) {
+            row[j] = rand() % 2;
+        }
+        for (int j = 0; j < pmaze->width; j++) {
+            row[j] += (rand() % 2) << 1;
+        }
+        for (int j = 0; j < pmaze->width; j++) {
+            pmaze->border_matrix[i][j] = row[j];
+        }
+    }
+    
+    errval = ERRCODE_OK;
+  }
+
+  return errval;
+}
+
+/*!
+  \ingroup Data_management_routines Функции работы с данными структур
+  \brief Функция заполнения матрицы лабиринта случай0ными значениями.
+  \param [in] pfile Указатель на дескриптор файла.
+  \param [in] pmaze Указатель на структуру maze_t.
+  \return Возвращает 1 при возникновении исключения или 0.
+
+  \details Функции предназначена заполнения матрицы лабиринта из файла.
+*/
+int freadMaze(FILE* pfile, maze_t* pmaze) {
+  int errval = ERRCODE_ERR;
+
+  if (!pfile) return errval;
+
+  if (pmaze) destroyMaze(pmaze);
+
+  int mheight, mwidth;
+  fscanf(pfile, "%d %d", &mheight, &mwidth);
+
+  if (createMaze(mheight, mwidth)) {
+    for (int i = 0; i < mheight; i++) {
+      for (int j = 0; j < mwidth; j++) {
+        int val;
+        fscanf(pfile, "%d", &val);
+        setMatrixValue(pmaze, i, j, val);
+      }
+    }
+    for (int i = 0; i < mheight; i++) {
+      for (int j = 0; j < mwidth; j++) {
+        int val;
+        fscanf(pfile, "%d", &val);
+        val = (val << 1) + getMatrixValue(pmaze, i, j);
+        setMatrixValue(pmaze, i, j, val);
+      }
+    }
+    errval = ERRCODE_OK;
+  }
+
+  return errval;
+}
+
+/*!
+  \ingroup Data_management_routines Функции работы с данными структур
+  \brief Функция заполнения матрицы лабиринта случайными значениями.
+  \param [in] pfile Указатель на дескриптор файла.
+  \param [in] pmaze Указатель на адрес структуры maze_t.
+  \return Возвращает 1 при возникновении исключения или 0.
+
+  \details Функции предназначена для сохранения матрицы лабиринта в файл.
+*/
+int fwriteMaze(FILE* pfile, maze_t* pmaze) {
+  int errval = ERRCODE_ERR;
+
+  if (!pfile || !pmaze) return errval;
+
+  fprintf(pfile, "%d %d\n", pmaze->height, pmaze->width);
+  for (int i = 0; i < pmaze->height; i++) {
+    for (int j = 0; j < pmaze->width; j++) {
+      int val = getMatrixValue(pmaze, i, j);
+      val = val << 31 >> 31;
+      fprintf(pfile, "%d", val);
+      if (i != pmaze->height - 1) fprintf(pfile, " ");
+    }
+    fprintf(pfile, "\n");
+  }
+  for (int i = 0; i < pmaze->height; i++) {
+    for (int j = 0; j < pmaze->width; j++) {
+      int val = getMatrixValue(pmaze, i, j);
+      val = val << 30 >> 31;
+      fprintf(pfile, "%d", val);
+      if (i != pmaze->height - 1) fprintf(pfile, " ");
+    }
+    fprintf(pfile, "\n");
+  }
+
+  return errval;
 }

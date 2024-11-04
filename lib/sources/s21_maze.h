@@ -24,8 +24,8 @@
 */
 #define MAX_MAZE_MEASURE 50
 
-#define ERRCODE_ERR 0;
-#define ERRCODE_OK 1;
+#define ERRCODE_ERR 1;
+#define ERRCODE_OK 0;
 
 /*!
   \brief Перечисление значения флага состояния хранения адреса локатора
@@ -56,7 +56,7 @@ typedef struct maze_locator {
   \defgroup Data_Structure_management Функции управления структурами данных
   \brief Функции предназначены для создания и уничтожения структур данных
 */
-int createMaze(int height, int width);
+maze_t* createMaze(int height, int width);
 void destroyMaze(maze_t* pmaze);
 int** createMatrix(const int height, const int width);
 void destroyMatrix(int** pmatrix);
@@ -75,6 +75,9 @@ int getMatrixValue(maze_t* pmaze, const int hindex, const int windex);
 void setMatrixValue(maze_t* pmaze, const int hindex, const int windex,
                     const int value);
 void clearMatrix(maze_t* pmaze);
+int fillMaze(maze_t* pmaze);
+int freadMaze(FILE* pfile, maze_t* pmaze);
+int fwriteMaze(FILE* pfile, maze_t* pmaze);
 
 // /*!
 //     \defgroup Data_files_routines Функции работы с файлами

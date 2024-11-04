@@ -24,17 +24,17 @@ C_CHECK_FLAGS = --enable=all --force --suppress=missingIncludeSystem --language=
 DOX_CONFIG = ./Doxyfile
 
 
-.PHONY: all install uninstall build tests clean linter dvi
+.PHONY: all install uninstall build tests clean linter dvi clangi
 
 .DEFAULT_GOAL: all
 
-all: build
+all: build dvi
 
 install:
 
 uninstall:
 
-build: dvi ${LIB_NAME}
+build: ${LIB_NAME}
 
 clean:
 	@rm -rf ./doc
@@ -52,11 +52,11 @@ dvi:
 	doxygen ${DOX_CONFIG}
 	
 ${CSTYLE}: ${LIB_SOURCES} ${LIB_HEADERS}
-	@echo "------------------------------------"
+	@echo "--------------------------------------"
 	@echo " Style test for lib sources started "
-	@echo "------------------------------------"
+	@echo "--------------------------------------"
 	$@ ${CSTYLE_FLAGS} $^
-	@echo "---------Style test ended-----------"
+	@echo "--------- Style test ended -----------"
 
 clangi: ${LIB_SOURCES} ${LIB_HEADERS}
 	${CSTYLE} ${CSTYLE_CORRECT} $^
@@ -71,9 +71,10 @@ ${LIB_OBJECTS_DIR}:
 	@${CC} ${CFLAGS} -o $(addprefix ${LIB_OBJECTS_DIR}/, $(notdir $@)) $<
 
 ${LIB_NAME}: ${LIB_OBJECTS_DIR} ${LIB_OBJECTS}
-	@echo "------------------------------------"
+	@echo "---------------------------------------"
 	@ar rc $@ $(addprefix ${LIB_OBJECTS_DIR}/, $(notdir ${OBJECTS_LIB}))
 	@ranlib $@
-	@echo "------------------------------------"
+	@rm -rf ${LIB_OBJECTS}
+	@echo "---------------------------------------"
 	@echo " ${LIB_NAME} compilation complete"
-	@echo "------------------------------------"
+	@echo "---------------------------------------"
