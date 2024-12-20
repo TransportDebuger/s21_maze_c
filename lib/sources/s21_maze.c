@@ -32,7 +32,7 @@ maze_t* createMaze(int height, int width) {
     if (pmaze) {
       pmaze->height = height;
       pmaze->width = width;
-      pmaze->border_matrix = createMatrix(height, width);
+      s21_create_matrix(height, width, pmaze->grid);
     }
   }
 
@@ -50,46 +50,8 @@ maze_t* createMaze(int height, int width) {
 */
 void destroyMaze(maze_t* pmaze) {
   if (pmaze) {
-    destroyMatrix(pmaze->border_matrix);
-    //функция уничтожения матрицы
+    s21_remove_matrix(pmaze->grid);
     free(pmaze);
-  }
-}
-
-/*!
-  \ingroup Data_Structure_management Функции управления структурами данных
-  \brief Функция уничтожения матрицы описателей границ.
-  \param [in] height Значение количества ячеек матрицы по высоте.
-  \param [in] width Значение количества ячеек матрицы по ширине.
-  \return Указатель на область памяти хранящей матрицу.
-
-  \details Функция выполняет создание матрицы значений границ ячеек в лабиринте.
-  Значения ячеек принудительно приведены к значению 0;
-*/
-int** createMatrix(const int height, const int width) {
-  int** pmatrix = (int**)malloc(height * sizeof(int*));
-  int* values = (int*)calloc(height * width, sizeof(int));
-  for (int i = 0; i < height; i++) {
-    pmatrix[i] = values + i * width;
-  }
-
-  return pmatrix;
-}
-
-/*!
-  \ingroup Data_Structure_management Функции управления структурами данных
-  \brief Функция уничтожения матрицы описателей границ.
-  \param [in] pmatrix Указатель на область памяти, хранящий матрицу границ ячеек
-  лабиринта.
-
-  \details Функция выполняет уничтожение матрицы значений границ ячеек в
-  лабиринте.
-*/
-void destroyMatrix(int** pmatrix) {
-  if (pmatrix) {
-    free(*pmatrix);
-    free(pmatrix);
-    pmatrix = NULL;
   }
 }
 
@@ -131,13 +93,13 @@ maze_t* locateMazeStructure(maze_t* pmaze) {
   \details Функции предназначена для получения значения из ячейки матрцы по
   индексам
 */
-int getMatrixValue(maze_t* pmaze, const int hindex, const int windex) {
+int getGridValue(maze_t* pmaze, const int hindex, const int windex) {
   int retval = -1;
 
   if (pmaze) {
     if (hindex < pmaze->height && hindex >= 0 && windex < pmaze->width &&
         windex >= 0)
-      retval = pmaze->border_matrix[hindex][windex];
+      retval = pmaze->grid[hindex][windex];
   }
 
   return retval;
@@ -146,20 +108,55 @@ int getMatrixValue(maze_t* pmaze, const int hindex, const int windex) {
 /*!
   \ingroup Data_management_routines Функции работы с данными структур
   \brief Функция предназначенная для получения значения хранимого в ячейке
-  матрицы. \param [in] pmaze Указатель на адрес структуры maze_t. \param [in]
-  hindex Индекс ячейки в матрице по высоте. \param [in] windex Индекс ячейки в
-  матрице по ширине. \param [in] value Значение записываемое в ячейку.
+  матрицы.
+  \param [in] pmaze Указатель на адрес структуры maze_t.
+  \param [in] hindex Индекс ячейки в матрице по высоте.
+  \param [in] windex Индекс ячейки в матрице по ширине.
+  \param [in] value Значение записываемое в ячейку.
 
   \details Функции предназначена для задания значения в ячейке матрцы по
   индексам.
 */
-void setMatrixValue(maze_t* pmaze, const int hindex, const int windex,
-                    const int value) {
+void setGridValue(maze_t* pmaze, const int hindex, const int windex,
+                  const int value) {
   if (pmaze) {
     if (hindex < pmaze->height && hindex >= 0 && windex < pmaze->width &&
         windex >= 0)
-      pmaze->border_matrix[hindex][windex] = value;
+      pmaze->border_grid[hindex][windex] = value;
   }
+}
+
+/*!
+  \ingroup Data_management_routines Функции работы с данными структур
+  \brief Функция инициализации матрицы лабиринта случайными значениями.
+  \param [in] pmaze Указатель на адрес структуры maze_t.
+  \return Возвращает 0 при возникновении исключения или 1.
+
+  \details Функции заполняет матрицу лабиринта случайным образом. Заполнение
+  ячеек осуществляется с вероятностью определенной макросом INITIAL_DENSITY.
+  Ячейки матрицы имеют следующие значения:
+  0 - стнки отсутсвуют,
+  1- присутствует стенка справа,
+  2 - присутствует стенка снизу,
+  3 - присутствуют стенки справа и снизу.
+*/
+int initializeMaze(maze_t* pmaze) {
+  if (!pmaze) {
+    return ERRCODE_ERR;
+  }
+
+  for (int i = 0; i < pmaze->height; i++) {
+    for (int j = 0; j < pmaze->width; j++) {
+      if (rand() % 100 <= 45) {
+        setGridValue(pmaze, i, j, 1);
+      }
+      if (rand() % 100 <= 45) {
+        setGridValue(pmaze, i, j, getGridValue(pmaze, i, j) + 2);
+      }
+    }
+  }
+
+  return ERRCODE_OK;
 }
 
 /*!
@@ -169,7 +166,7 @@ void setMatrixValue(maze_t* pmaze, const int hindex, const int windex,
 
   \details Функции предназначена очистки значений матрицы.
 */
-void clearMatrix(maze_t* pmaze) {
+void clearMaze(maze_t* pmaze) {
   if (pmaze) {
     for (int i = 0; i < pmaze->height; i++) {
       for (int j = 0; j < pmaze->width; j++) {
@@ -177,38 +174,6 @@ void clearMatrix(maze_t* pmaze) {
       }
     }
   }
-}
-
-/*!
-  \ingroup Data_management_routines Функции работы с данными структур
-  \brief Функция заполнения матрицы лабиринта случайными значениями.
-  \param [in] pmaze Указатель на адрес структуры maze_t.
-  \return Возвращает 0 при возникновении исключения или 1.
-
-  \details Функции предназначена заполнения матрицы лабиринта.
-*/
-int fillMaze(maze_t* pmaze) {
-  int errval = ERRCODE_ERR;
-
-  if (pmaze) {
-    for (int i = 0; i < pmaze->height; i++) {
-        //
-        int row[pmaze->width];
-        for (int j = 0; j < pmaze->width; j++) {
-            row[j] = rand() % 2;
-        }
-        for (int j = 0; j < pmaze->width; j++) {
-            row[j] += (rand() % 2) << 1;
-        }
-        for (int j = 0; j < pmaze->width; j++) {
-            pmaze->border_matrix[i][j] = row[j];
-        }
-    }
-    
-    errval = ERRCODE_OK;
-  }
-
-  return errval;
 }
 
 /*!

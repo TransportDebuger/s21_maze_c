@@ -4,10 +4,11 @@ CC := gcc
 CFLAGS := -Wall -Werror -Wextra -x c -std=c11 -pedantic
 LIB_FLAGS := -lncurses
 TEST_FLAGS := -lcheck
-PROJECT_NAME = "s21_maze"
+PROJECT_NAME = s21_maze
 UNAME_S := $(shell uname -s)
 
-LIB_PATH := ./lib
+LIB_PREFIX := lib
+LIB_PATH := ./${LIB_PREFIX}
 
 EXEC_FILENAME := ${PROJECT_NAME}
 
@@ -15,6 +16,7 @@ EXEC_FILENAME := ${PROJECT_NAME}
 CSTYLE := clang-format
 CSTYLE_FLAGS := --style=Google -n
 CSTYLE_CORRECT := --style=Google -i
+
 # ifeq ($(UNAME_S),Linux)
 #     CCFLAGS += -D LINUX
 # endif
@@ -37,6 +39,17 @@ build:
 
 clean:
 	${MAKE} -C ${LIB_PATH} $@
+
+linter:
+	@printf "\e[40;32m\n"
+	@echo "---------------------------------------"
+	@echo "  Style tests for projects ${PROJECT_NAME}   "
+	@echo "---------------------------------------"
+	@tput sgr0
+	${MAKE} -C ${LIB_PATH} $@
+	@printf "\e[40;32m\n"
+	@echo "-- Style tests for project ${PROJECT_NAME} ended --"
+	@tput sgr0
 
 tests:
 	${MAKE} -C ${LIB_PATH} $@
