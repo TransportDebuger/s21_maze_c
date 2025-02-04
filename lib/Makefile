@@ -3,7 +3,7 @@ SHELL := /bin/bash
 CC := gcc
 CFLAGS := -Wall -Werror -Wextra -x c -std=c11 -pedantic -c
 TEST_FLAGS := -lcheck
-PROJECT_NAME = libS21_maze
+PROJECT_NAME = libs21_maze
 UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S), Linux)
@@ -20,14 +20,12 @@ LIB_NAME := ${PROJECT_NAME}.a
 LIB_SOURCES := $(wildcard ${LIB_SOURCES_DIR}/*.c)
 LIB_HEADERS := $(wildcard ${LIB_SOURCES_DIR}/*.h)
 LIB_OBJECTS := $(patsubst %.c, %.o, $(LIB_SOURCES))
-LIB_DEPENDANCY := ${LIB_PATH}/s21_matrix
 
 CSTYLE := clang-format
-CSTYLE_FLAGS := --style=Google -n
 CSTYLE_CORRECT := --style=Google -i
 
 C_CHECK = cppcheck
-C_CHECK_FLAGS = --enable=all --force --suppress=missingIncludeSystem --language=c --std=c11
+C_CHECK_FLAGS = --enable=all --force --suppress=missingIncludeSystem --suppress=unusedFunction --language=c --std=c11
 
 DOX_CONFIG = ./Doxyfile
 
@@ -42,24 +40,17 @@ install:
 uninstall:
 .PHONY: uninstall
 
-build: dependancy ${LIB_NAME}
+build: ${LIB_NAME}
 .PHONY: build
 
 clean:
-	${MAKE} -C ${LIB_DEPENDANCY} clean
 	@rm -rf ./doc
 	@rm -rf ${LIB_OBJECTS_DIR}
 	@rm -f ${LIB_NAME}
 .PHONY: clean
 
 
-linter: ${CSTYLE}
-	@printf "\e[40;32m\n"
-	@echo "---------------------------------------"
-	@echo "      Style tests for dependancies     "
-	@echo "---------------------------------------"
-	@tput sgr0
-	@${MAKE} -C ${LIB_DEPENDANCY} linter
+linter: ${CSTYLE} ${C_CHECK}
 .PHONY: linter
 
 tests: linter
@@ -73,14 +64,22 @@ dvi:
 .PHONY: dvi
 	
 ${CSTYLE}: ${LIB_SOURCES} ${LIB_HEADERS}
-	@printf "\e[40;32m\n"
-	@echo "--------------------------------------"
-	@echo " Style test for lib sources started "
-	@echo "--------------------------------------"
-	@tput sgr0
-	$@ ${CSTYLE_FLAGS} $^
-	@printf "\e[40;32m\n"
-	@echo "-- Style test for ${PROJECT_NAME} sources ended --"
+	@cp ../../materials/linters/.clang-format .
+	@printf "\e[40;32m\n";
+	@echo '--- Style test for "${PROJECT_NAME}" started ---'
+	@for src in ${LIB_SOURCES} ${LIB_HEADERS} ; do \
+		var=`"$@" "${LIB_PATH}/$$src" | diff "${LIB_PATH}/$$src" - | wc -l` ; \
+		if [ $$var -ne 0 ] ; then \
+		    printf "\e[40;31m\n"; \
+			echo "$$src style test [FAULT] (diff: $$var lines)." ; \
+			tput sgr0; \
+			exit 1 ; \
+		else \
+			echo "$$src style test [PASS]"; \
+		fi ; \
+	done
+	@rm -f ./.clang-format
+	@echo '--- Style check for "${PROJECT_NAME}" PASSED ---'
 	@tput sgr0
 
 clangi: ${LIB_SOURCES} ${LIB_HEADERS}
@@ -88,7 +87,19 @@ clangi: ${LIB_SOURCES} ${LIB_HEADERS}
 .PHONY: clangi
 
 ${C_CHECK}: ${LIB_SOURCES} ${LIB_HEADERS}
-	$@ ${C_CHECK_FLAGS} $^
+	@printf "\e[40;32m\n";
+	@echo '--- $@ test for "${PROJECT_NAME}" started ---' 
+	$(eval ERR_OUTPUT := $(shell $@ ${C_CHECK_FLAGS} $^ 2>&1 | grep -v -e done -e Checking))
+	@if [ -n "$(ERR_OUTPUT)" ]; then \
+  		printf "\e[40;31m\n"; \
+		echo "Warrnings and errors present!"; \
+  		echo "$(ERR_OUTPUT)"; \
+		echo "--- $@ test for "${PROJECT_NAME}" FAULT ---"; \
+		tput sgr0; \
+  		exit 1; \
+	else \
+  		echo "--- $@ test for "${PROJECT_NAME}" PASSED ---"; \
+ 	fi
 
 ${LIB_OBJECTS_DIR}:
 	@mkdir $@
@@ -104,12 +115,3 @@ ${LIB_NAME}: ${LIB_OBJECTS_DIR} ${LIB_OBJECTS}
 	@echo "---------------------------------------"
 	@echo " ${LIB_NAME} compilation complete"
 	@echo "---------------------------------------"
-
-dependancy:
-	@printf "\e[40;32m\n"
-	@echo "----------------------------------------"
-	@echo "      Build & install dependancies      "
-	@echo "----------------------------------------"
-	@tput sgr0
-	@${MAKE} -C ${LIB_DEPENDANCY} build
-.PHONY: dependancy

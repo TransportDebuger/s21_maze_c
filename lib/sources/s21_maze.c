@@ -16,24 +16,14 @@
   \return Целочисленное значение кода ошибки.
 
   \details Функция предназначена для создания основной структуры maze_t.
-  В ходе выплолнения создается структура хранения либиринта. Указатель на адрес
-  созданной структуры передается локатору ресурсов.
+  В ходе выплолнения создается пустая структура хранения либиринта.
 */
-maze_t* createMaze(int height, int width) {
-  int errval = ERRCODE_ERR;
-  maze_t* pmaze;
+maze_t* createMaze() {
+  maze_t* pmaze = NULL;
 
-  if (height < MAX_MAZE_MEASURE && height > 0 && width < MAX_MAZE_MEASURE &&
-      width > 0)
-    errval = ERRCODE_OK;
-
-  if (!errval) {
-    pmaze = (maze_t*)malloc(sizeof(maze_t));
-    if (pmaze) {
-      pmaze->height = height;
-      pmaze->width = width;
-      s21_create_matrix(height, width, pmaze->grid);
-    }
+  if ((pmaze = (maze_t*)malloc(sizeof(maze_t))) != NULL) {
+    pmaze->height = 0;
+    pmaze->width = 0;
   }
 
   return pmaze;
@@ -50,8 +40,62 @@ maze_t* createMaze(int height, int width) {
 */
 void destroyMaze(maze_t* pmaze) {
   if (pmaze) {
-    s21_remove_matrix(pmaze->grid);
+    if (pmaze->grid) {
+      destroyGrid(pmaze->grid, pmaze->height, pmaze->width)
+    }
     free(pmaze);
+  }
+}
+
+/*!
+  \ingroup Data_Structure_management Функции управления структурами данных
+  \brief Функция создания матрицы сетки лабиринта.
+  \param [in] height высота матрицы лабиринта.
+  \param [in] width ширина матрицы лабиринта.
+  \return указатель на матрицу хранениия сетки лабиринта.
+
+  \details Функция предназначена для создания матрицы хранения лабиринта.
+  В ходе выпололнения создается пустая структура хранения либиринта. Заполнение
+  матрицы нулевыми значениями производится при ее создании.
+*/
+int** createGrid(const int height, const int width) {
+  int** grid = NULL;
+
+  if (height < MIN_MAZE_MEASURE || height > MAX_MAZE_MEASURE ||
+      width < MIN_MAZE_MEASURE || width > MAX_MAZE_MEASURE) {
+    return grid;
+  }
+
+  if ((grid = (int**)malloc(sizeof(int*) * height)) != NULL) {
+    int* lines = NULL;
+    if ((lines = (int*)calloc(height * width, sizeof(int))) != NULL) {
+      for (int i = 0; i < height; i++) {
+        *(grid + i) = lines + (i * width);
+      }
+    } else {
+      free(grid);
+      grid = NULL;
+    }
+  }
+
+  return grid;
+}
+
+/*!
+  \ingroup Data_Structure_management Функции управления структурами данных
+  \brief Функция уничтожения матрицы сетки лабиринта.
+  \param [in, out] pmatrix указатель на матрицу хранения лабиринта.
+  \param [in] height высота матрицы лабиринта.
+  \param [in] width ширина матрицы лабиринта.
+
+  \details Функция предназначена для уничтожения матрицы хранения лабиринта.
+  Функция предназначена для освобождания памяти выделенной матрице хранения
+  лабиринта.
+*/
+void destroyGrid(int** pmatrix, const int height, const int width) {
+  if (pmatrix) {
+    if (*pmatrix) free(*pmatrix);
+    free(pmatrix);
   }
 }
 
@@ -97,9 +141,11 @@ int getGridValue(maze_t* pmaze, const int hindex, const int windex) {
   int retval = -1;
 
   if (pmaze) {
-    if (hindex < pmaze->height && hindex >= 0 && windex < pmaze->width &&
-        windex >= 0)
-      retval = pmaze->grid[hindex][windex];
+    if (pmaze->grid) {
+      if (hindex < pmaze->height && hindex >= 0 && windex < pmaze->width &&
+          windex >= 0)
+        retval = pmaze->grid[hindex][windex];
+    }
   }
 
   return retval;
@@ -120,43 +166,12 @@ int getGridValue(maze_t* pmaze, const int hindex, const int windex) {
 void setGridValue(maze_t* pmaze, const int hindex, const int windex,
                   const int value) {
   if (pmaze) {
-    if (hindex < pmaze->height && hindex >= 0 && windex < pmaze->width &&
-        windex >= 0)
-      pmaze->border_grid[hindex][windex] = value;
-  }
-}
-
-/*!
-  \ingroup Data_management_routines Функции работы с данными структур
-  \brief Функция инициализации матрицы лабиринта случайными значениями.
-  \param [in] pmaze Указатель на адрес структуры maze_t.
-  \return Возвращает 0 при возникновении исключения или 1.
-
-  \details Функции заполняет матрицу лабиринта случайным образом. Заполнение
-  ячеек осуществляется с вероятностью определенной макросом INITIAL_DENSITY.
-  Ячейки матрицы имеют следующие значения:
-  0 - стнки отсутсвуют,
-  1- присутствует стенка справа,
-  2 - присутствует стенка снизу,
-  3 - присутствуют стенки справа и снизу.
-*/
-int initializeMaze(maze_t* pmaze) {
-  if (!pmaze) {
-    return ERRCODE_ERR;
-  }
-
-  for (int i = 0; i < pmaze->height; i++) {
-    for (int j = 0; j < pmaze->width; j++) {
-      if (rand() % 100 <= 45) {
-        setGridValue(pmaze, i, j, 1);
-      }
-      if (rand() % 100 <= 45) {
-        setGridValue(pmaze, i, j, getGridValue(pmaze, i, j) + 2);
-      }
+    if (pmaze->grid) {
+      if (hindex < pmaze->height && hindex >= 0 && windex < pmaze->width &&
+          windex >= 0)
+        pmaze->grid[hindex][windex] = value;
     }
   }
-
-  return ERRCODE_OK;
 }
 
 /*!
@@ -164,16 +179,50 @@ int initializeMaze(maze_t* pmaze) {
   \brief Функция очистки матрицы значений.
   \param [in] pmaze Указатель на адрес структуры maze_t.
 
-  \details Функции предназначена очистки значений матрицы.
+  \details Функции приводит структуру maze_t к пустому состоянию. В ходе
+  выполнения функция осуществляет удаление матрицы значений и приводит значение
+  высоты и ширины лабиринта к значению 0.
 */
 void clearMaze(maze_t* pmaze) {
   if (pmaze) {
-    for (int i = 0; i < pmaze->height; i++) {
-      for (int j = 0; j < pmaze->width; j++) {
-        setMatrixValue(pmaze, i, j, 0);
-      }
+    if (pmaze->grid) {
+      destroyGrid(pmaze->grid, pmaze->height, pmaze->width);
+      pmaze->grid = NULL;
+      pmaze->height = 0;
+      pmaze->width = 0;
     }
   }
+}
+
+/*!
+  \ingroup Data_management_routines Функции работы с данными структур
+  \brief Функция инициализации размеров сетки лабиринта.
+  \param [in, out] pmaze Указатель на адрес структуры maze_t.
+  \param [in] newHeight Новое значение высоты сетки массива
+  \param [in] newWidth Новое значение ширины сетки массива
+  \return Код ошибки ERRCODE_OK (0) или ERRCODE_ERR(1).
+
+  \details Функции задает новую размерность сетки лаибиринта по высоте и ширине.
+  Значения высоты и ширины не могут буть меньше значения MIN_MAZE_MEASURE и
+  больше MAX_MAZE_MEASURE. При заднии размеров не входящих в диапазон допустимых
+  значений выполнение функции немедленно прекращается. При наличии указателя на
+  ранее созданную сетку лабиринта, область памяти занятая лабиринтом очищается.
+  \warning Выполнение функции не приводит к созданию сетки лабиринта.
+*/
+int setMazeSize(maze_t* pmaze, const int newHeight, const int newWidth) {
+  int errval = ERRCODE_ERR;
+
+  if (pmaze) {
+    if (newHeight >= MIN_MAZE_MEASURE && newHeight <= MAX_MAZE_MEASURE &&
+        newWidth >= MIN_MAZE_MEASURE && newWidth <= MAX_MAZE_MEASURE) {
+      clearMaze(pmaze);
+      pmaze->height = newHeight;
+      pmaze->width = newWidth;
+      errval = ERRCODE_OK
+    }
+  }
+
+  return errval;
 }
 
 /*!
@@ -190,29 +239,29 @@ int freadMaze(FILE* pfile, maze_t* pmaze) {
 
   if (!pfile) return errval;
 
-  if (pmaze) destroyMaze(pmaze);
+  // if (pmaze) destroyMaze(pmaze);
 
-  int mheight, mwidth;
-  fscanf(pfile, "%d %d", &mheight, &mwidth);
+  //   int mheight, mwidth;
+  //   fscanf(pfile, "%d %d", &mheight, &mwidth);
 
-  if (createMaze(mheight, mwidth)) {
-    for (int i = 0; i < mheight; i++) {
-      for (int j = 0; j < mwidth; j++) {
-        int val;
-        fscanf(pfile, "%d", &val);
-        setMatrixValue(pmaze, i, j, val);
-      }
-    }
-    for (int i = 0; i < mheight; i++) {
-      for (int j = 0; j < mwidth; j++) {
-        int val;
-        fscanf(pfile, "%d", &val);
-        val = (val << 1) + getMatrixValue(pmaze, i, j);
-        setMatrixValue(pmaze, i, j, val);
-      }
-    }
-    errval = ERRCODE_OK;
-  }
+  //   if (createMaze(mheight, mwidth)) {
+  //     for (int i = 0; i < mheight; i++) {
+  //       for (int j = 0; j < mwidth; j++) {
+  //         int val;
+  //         fscanf(pfile, "%d", &val);
+  //         setMatrixValue(pmaze, i, j, val);
+  //       }
+  //     }
+  //     for (int i = 0; i < mheight; i++) {
+  //       for (int j = 0; j < mwidth; j++) {
+  //         int val;
+  //         fscanf(pfile, "%d", &val);
+  //         val = (val << 1) + getMatrixValue(pmaze, i, j);
+  //         setMatrixValue(pmaze, i, j, val);
+  //       }
+  //     }
+  //     errval = ERRCODE_OK;
+  //   }
 
   return errval;
 }
@@ -229,26 +278,64 @@ int freadMaze(FILE* pfile, maze_t* pmaze) {
 int fwriteMaze(FILE* pfile, maze_t* pmaze) {
   int errval = ERRCODE_ERR;
 
-  if (!pfile || !pmaze) return errval;
+  //   if (!pfile || !pmaze) return errval;
 
-  fprintf(pfile, "%d %d\n", pmaze->height, pmaze->width);
-  for (int i = 0; i < pmaze->height; i++) {
-    for (int j = 0; j < pmaze->width; j++) {
-      int val = getMatrixValue(pmaze, i, j);
-      val = val << 31 >> 31;
-      fprintf(pfile, "%d", val);
-      if (i != pmaze->height - 1) fprintf(pfile, " ");
-    }
-    fprintf(pfile, "\n");
+  //   fprintf(pfile, "%d %d\n", pmaze->height, pmaze->width);
+  //   for (int i = 0; i < pmaze->height; i++) {
+  //     for (int j = 0; j < pmaze->width; j++) {
+  //       int val = getMatrixValue(pmaze, i, j);
+  //       val = val << 31 >> 31;
+  //       fprintf(pfile, "%d", val);
+  //       if (i != pmaze->height - 1) fprintf(pfile, " ");
+  //     }
+  //     fprintf(pfile, "\n");
+  //   }
+  //   for (int i = 0; i < pmaze->height; i++) {
+  //     for (int j = 0; j < pmaze->width; j++) {
+  //       int val = getMatrixValue(pmaze, i, j);
+  //       val = val << 30 >> 31;
+  //       fprintf(pfile, "%d", val);
+  //       if (i != pmaze->height - 1) fprintf(pfile, " ");
+  //     }
+  //     fprintf(pfile, "\n");
+  //   }
+
+  return errval;
+}
+
+/*!
+  \ingroup Maze_generation_routines Функции заполнения лабиринта
+  \brief Функция генерации лабиринта на основе алгоритма Эллера (Maze
+  Generation: Eller's Algorithm). \param [in, out] pmaze Указатель на адрес
+  структуры maze_t.
+
+  \details Функции предназначена для генерации произвольного лабиринта с
+  использование алгоритма Эллера.
+*/
+int generateMazeEller(maze_t* pmaze) {
+  int errval = ERRCODE_ERR;
+  // Проверка условий выполнения (выход если не условия не соблюдены):
+  // наличие действительного указателя
+  if (!pmaze) return errval;
+  // допустимость размеров лабиринта
+  if (pmaze->height < MIN_MAZE_MEASURE || pmaze->height > MAX_MAZE_MEASURE ||
+      pmaze->width < MIN_MAZE_MEASURE || pmaze->width > MAX_MAZE_MEASURE)
+    return errval;
+
+  // Проверяем наличие указателя на матрицу. Если есть, то убиваем.
+  if (pmaze->grid) {
+    size_t matrix_height = sizeof(pmaze->grid / sizeof(int*));
+    size_t matrix_width = sizeof(*(pmaze->grid) / sizeof(int)) / matrix_height;
+    destroyGrid(pmaze->grid, (int)matrix_height, (int)matrix_width);
   }
-  for (int i = 0; i < pmaze->height; i++) {
-    for (int j = 0; j < pmaze->width; j++) {
-      int val = getMatrixValue(pmaze, i, j);
-      val = val << 30 >> 31;
-      fprintf(pfile, "%d", val);
-      if (i != pmaze->height - 1) fprintf(pfile, " ");
-    }
-    fprintf(pfile, "\n");
+  // Создаем новую чистую матрицу.
+  if ((pmaze->grid = createGrid(pmaze->height, pmaze->width)) == NULL)
+    return errval;  // Если возникла ошибка при выделении памяти для сетки -
+                    // выходим.
+
+  //заполняем массив всеми границами
+  for (int i = 0; i < pmaze->height * pmaze->width; i++) {
+    *(*(pmaze->grid) + i) = MAZE_BOTTOM_BORDER + MAZE_RIGHT_BORDER;
   }
 
   return errval;
